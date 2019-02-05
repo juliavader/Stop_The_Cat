@@ -1,0 +1,65 @@
+import RPi.GPIO as GPIO 
+import time 
+from Led import Led 
+from time import sleep 
+from flask import Flask 
+from flask_socketio import SocketIO, send, emit 
+from flask import render_template 
+import threading
+
+
+app = Flask(__name__)
+socketio = SocketIO(app)
+
+@app.route("/")
+def index():
+    return render_template('index.html')
+
+# Initialisation de notre GPIO 17 pour recevoir un signal
+# Contrairement à nos LEDs avec lesquelles on envoyait un signal
+
+def stop_the_cat():
+    buzzer = 22
+    GPIO.setup(buzzer, GPIO.OUT)
+
+    broche=17
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+    GPIO.setup(broche, GPIO.IN)
+
+    currentstate = 0
+    previousstate = 0
+
+    # Boucle infini jusqu'à CTRL-C
+    while True:
+        # Lecture du capteur
+        currentstate = GPIO.input(broche)
+                    # Si le capteur est déclenché
+        if currentstate == 1 and previousstate == 0:
+            print("    Mouvement détecté !")
+            GPIO.output(buzzer, GPIO.HIGH)
+            sleep(0.2)
+            GPIO.output(buzzer, GPIO.LOW)
+            message = 'Le chat a trépassé votre territoire'
+            socketio.emit('alert', message, Broadcast=True)
+    # En enregistrer l'état
+            previousstate = 1
+        # Si le capteur est s'est stabilisé
+        elif currentstate == 0 and previousstate == 1:
+            print("    Prêt")
+            previousstate = 0
+        # On attends 10ms
+        time.sleep(0.01)
+read_messages = threading.Thread(target=stop_the_cat)
+read_messages.start()
+
+
+@app.route('/test')
+def test():
+   i= 30
+   while i > 0:
+       led.allumer()
+       time.sleep(1)
+       led.eteindre()
+       i = i-1
+   led.eteindre
